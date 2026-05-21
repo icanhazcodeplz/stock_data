@@ -1,0 +1,26 @@
+[project]
+name = "stock_data"
+version = "0.1.0"
+description = "Daily utility that collects stock information, indicators, and recent price/volume history for most US equities."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "alpaca-py",
+    "python-dotenv",
+    "yfinance>=1.3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["stock_data"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.13",
+]
+
+[tool.ruff]
+line-length = 120
