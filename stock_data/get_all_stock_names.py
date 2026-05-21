@@ -1,9 +1,11 @@
 import time
 from collections import Counter
 from collections.abc import Iterable
+from pathlib import Path
 
 from alpaca.trading.enums import AssetExchange
 
+from settings import REPO_ROOT
 from stock_data.clients.alpaca import get_active_us_equities
 
 DEFAULT_EXCHANGES: tuple[AssetExchange, ...] = (
@@ -11,6 +13,8 @@ DEFAULT_EXCHANGES: tuple[AssetExchange, ...] = (
     AssetExchange.AMEX,
     AssetExchange.NYSE,
 )
+
+DEFAULT_SYMBOLS_FILE: Path = REPO_ROOT / "data" / "all_symbols.txt"
 
 
 def get_all_stock_names(
@@ -26,6 +30,19 @@ def get_all_stock_names(
             assets = assets[:limit_per_exchange]
         symbols.extend(asset.symbol for asset in assets)
     return symbols
+
+
+def write_symbols_file(
+    symbols: list[str],
+    path: Path = DEFAULT_SYMBOLS_FILE,
+) -> None:
+    """Write ``symbols`` to ``path``, one per line, sorted, with a trailing newline.
+
+    Ensures the parent directory exists before writing.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    sorted_symbols = sorted(symbols)
+    path.write_text("\n".join(sorted_symbols) + "\n")
 
 
 if __name__ == "__main__":
