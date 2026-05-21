@@ -27,6 +27,6 @@ Daily utility that runs each morning to collect stock information, indicators, a
 - `stock_data/` — main package.
 - `stock_data/clients/alpaca.py` — thin wrapper around the `alpaca-py` SDK. Centralizes `TradingClient` construction (paper vs. live, picking the right keys from `settings.ENV`) and exposes typed helpers like `get_active_us_equities(exchange)`. New data-source clients should follow the same pattern: one file per provider under `clients/`.
 - `stock_data/get_all_stock_names.py` — fetches active US-equity symbols from NASDAQ, AMEX, and NYSE via the alpaca client. Accepts `exchanges` and `limit_per_exchange` so tests can pull a tiny slice without hitting the full universe.
-- `tests/` — unittest test modules. Run with `uv run python -m unittest discover` from the repo root, or target a single module: `uv run python -m unittest tests.test_get_all_stock_names`.
+- `tests/` — pytest test modules. Run with `uv run pytest` from the repo root, or target a single file: `uv run pytest tests/test_get_all_stock_names.py`.
 
 When adding new data-source clients, read credentials from `settings.ENV` rather than `os.environ` directly.
