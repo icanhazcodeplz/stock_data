@@ -11,6 +11,9 @@ class Financials:
     short_interest: int | None
     sector: str | None
     industry: str | None
+    country: str | None
+    exchange: str | None
+    short_float: float | None
 
 
 def get_financials(symbol: str) -> Financials:
@@ -22,4 +25,7 @@ def get_financials(symbol: str) -> Financials:
         short_interest=info.get("sharesShort"),
         sector=info.get("sector"),
         industry=info.get("industry"),
+        country=info.get("country"),
+        exchange=info.get("exchange"),
+        short_float=info.get("shortPercentOfFloat"),
     )
