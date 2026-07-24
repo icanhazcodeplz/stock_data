@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(update-config)",
+      "Bash(bash *)",
+      "Bash(uv python *)",
+      "Bash(uv run *)",
+      "Bash(uv sync *)",
+      "Bash(uv add *)",
+      "Bash(gh label *)",
+      "Bash(gh repo *)",
+      "Bash(gh issue *)",
+      "Bash(gh pr *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git branch *)",
+      "Bash(git worktree *)",
+      "Bash(git check-ignore *)",
+      "Bash(git checkout *)",
+      "Bash(git reset *)",
+      "Bash(git commit *)",
+      "Bash(git fetch *)",
+      "Bash(git switch *)",
+      "Bash(git merge *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-push-to-main.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
