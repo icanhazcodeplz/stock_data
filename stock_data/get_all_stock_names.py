@@ -1,6 +1,7 @@
 import time
 from collections import Counter
 from collections.abc import Iterable
+from datetime import date
 from pathlib import Path
 
 from alpaca.trading.enums import AssetExchange
@@ -45,35 +46,50 @@ def write_symbols_file(
     path.write_text("\n".join(sorted_symbols) + "\n")
 
 
-if __name__ == "__main__":
-    by_exchange: dict[AssetExchange, list[str]] = {}
-    timings: dict[AssetExchange, float] = {}
+def symbols_file_updated_today(path: Path = DEFAULT_SYMBOLS_FILE) -> bool:
+    """Return True if ``path`` exists and was last modified today."""
+    if not path.exists():
+        return False
+    return date.fromtimestamp(path.stat().st_mtime) == date.today()
 
-    overall_start = time.perf_counter()
-    for exchange in DEFAULT_EXCHANGES:
-        start = time.perf_counter()
-        assets = get_active_us_equities(exchange)
-        timings[exchange] = time.perf_counter() - start
-        by_exchange[exchange] = [a.symbol for a in assets]
-    overall_elapsed = time.perf_counter() - overall_start
 
-    print(f"Total fetch time: {overall_elapsed:.2f}s\n")
-    print(f"{'Exchange':<10} {'Symbols':>8} {'Dotted':>8} {'Time (s)':>10}")
-    print("-" * 40)
-    for exchange in DEFAULT_EXCHANGES:
-        symbols = by_exchange[exchange]
-        dotted = [s for s in symbols if "." in s]
-        print(
-            f"{exchange.value:<10} {len(symbols):>8} {len(dotted):>8} "
-            f"{timings[exchange]:>10.2f}"
-        )
+def fetch_and_write_all_symbols() -> list[str]:
+    """Fetch all symbols with the defaults, write them to the symbols file,
+    and print a summary of what was fetched."""
+    start = time.perf_counter()
+    symbols = get_all_stock_names()
+    elapsed = time.perf_counter() - start
 
-    counts = Counter(s for symbols in by_exchange.values() for s in symbols)
+    write_symbols_file(symbols)
+
+    dotted = [s for s in symbols if "." in s]
+    counts = Counter(symbols)
     duplicates = {sym: c for sym, c in counts.items() if c > 1}
-    print(f"\nSymbols appearing in multiple exchanges: {len(duplicates)}")
+
+    print(f"Total fetch time: {elapsed:.2f}s")
+    print(f"Symbols fetched: {len(symbols)}")
+    print(f"Dotted symbols: {len(dotted)}")
+    print(f"Symbols appearing in multiple exchanges: {len(duplicates)}")
     if duplicates:
         for sym, count in list(duplicates.items())[:10]:
-            exchanges_with = [
-                ex.value for ex, symbols in by_exchange.items() if sym in symbols
-            ]
-            print(f"  {sym} ({count}x): {', '.join(exchanges_with)}")
+            print(f"  {sym} ({count}x)")
+    print(f"Wrote {len(symbols)} symbols to {DEFAULT_SYMBOLS_FILE}")
+
+    return symbols
+
+
+def refresh_symbols_if_stale() -> list[str]:
+    """Refetch and rewrite the symbols file unless it was already updated today.
+
+    Returns the symbols either way: fresh from the API, or read back from the
+    existing file when the fetch is skipped.
+    """
+    if symbols_file_updated_today():
+        print(f"{DEFAULT_SYMBOLS_FILE} was already updated today; skipping refetch.")
+        return DEFAULT_SYMBOLS_FILE.read_text().splitlines()
+    print(f"{DEFAULT_SYMBOLS_FILE} was not updated today; refetching symbols.")
+    return fetch_and_write_all_symbols()
+
+
+if __name__ == "__main__":
+    refresh_symbols_if_stale()

@@ -30,3 +30,7 @@ Daily utility that runs each morning to collect stock information, indicators, a
 - `tests/` — pytest test modules. Run with `uv run pytest` from the repo root, or target a single file: `uv run pytest tests/test_get_all_stock_names.py`.
 
 When adding new data-source clients, read credentials from `settings.ENV` rather than `os.environ` directly.
+
+## Style Guide
+
+- Do not add arg-parsing for testing purposes in new or existing scripts. If a script needs a smaller run for manual testing, expose it as a function parameter (e.g. `limit`) rather than a command-line flag.
