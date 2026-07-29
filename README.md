@@ -2,8 +2,8 @@
 
 Daily utility that collects fundamentals (sector, industry, float, short
 interest) for most US equities. The symbol universe comes from Alpaca
-(NASDAQ, AMEX, NYSE); fundamentals come from Yahoo Finance; everything is
-stored as append-only history in a local SQLite database.
+(NASDAQ, AMEX, NYSE); fundamentals come from Yahoo Finance; the latest row
+per symbol is stored in a local SQLite database.
 
 ## Setup
 
@@ -65,7 +65,7 @@ lower-level helpers in `stock_data.storage`.
 
 | File | Committed | Purpose |
 | --- | --- | --- |
-| `data/fundamentals.db` | no | SQLite store; append-only history keyed by `(symbol, retrieval_datetime)` |
+| `data/fundamentals.db` | no | SQLite store; latest row per symbol, keyed by `(symbol, retrieval_datetime)` |
 | `data/all_symbols.txt` | no | Daily symbol snapshot from Alpaca, one symbol per line |
 | `data/skip_symbols.csv` | yes | `symbol,reason` skip list consumed by `read_symbols()` |
 
