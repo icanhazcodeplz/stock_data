@@ -220,4 +220,6 @@ __marimo__/
 # Project specific
 data/all_symbols.txt
 data/fundamentals.db
+data/fundamentals.db-shm
+data/fundamentals.db-wal
 plan/

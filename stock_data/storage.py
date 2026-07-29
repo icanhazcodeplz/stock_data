@@ -85,9 +85,7 @@ def get_latest_per_symbol(
 ) -> dict[str, datetime]:
     """Return {symbol: latest retrieval_datetime} for given (or all) symbols."""
     if symbols is None:
-        cursor = conn.execute(
-            "SELECT symbol, MAX(retrieval_datetime) FROM fundamentals GROUP BY symbol"
-        )
+        cursor = conn.execute("SELECT symbol, MAX(retrieval_datetime) FROM fundamentals GROUP BY symbol")
     else:
         symbols_list = list(symbols)
         if not symbols_list:
@@ -99,3 +97,32 @@ def get_latest_per_symbol(
             symbols_list,
         )
     return {symbol: datetime.fromisoformat(ts) for symbol, ts in cursor.fetchall()}
+
+
+def get_latest_fundamentals(
+    conn: sqlite3.Connection,
+    symbols: list[str],
+) -> list[dict]:
+    """Return the most recent fundamentals row for each of ``symbols``.
+
+    Symbols with no rows in the database are simply absent from the result.
+    """
+    if not symbols:
+        return []
+    placeholders = ",".join("?" for _ in symbols)
+    cursor = conn.execute(
+        f"""
+        SELECT f.*
+        FROM fundamentals f
+        INNER JOIN (
+            SELECT symbol, MAX(retrieval_datetime) AS max_dt
+            FROM fundamentals
+            WHERE symbol IN ({placeholders})
+            GROUP BY symbol
+        ) latest
+        ON f.symbol = latest.symbol AND f.retrieval_datetime = latest.max_dt
+        """,
+        symbols,
+    )
+    columns = [description[0] for description in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
