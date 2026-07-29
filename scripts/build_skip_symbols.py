@@ -27,12 +27,11 @@ The output CSV has two columns, ``symbol`` and ``reason``, where
 without re-querying Yahoo.
 
 Usage:
-    uv run python scripts/build_skip_symbols.py [--limit N]
+    uv run python scripts/build_skip_symbols.py
 
 Run from the repo root so ``settings`` and ``stock_data`` are importable.
 """
 
-import argparse
 import csv
 import sys
 from collections import Counter
@@ -87,9 +86,7 @@ def structural_reason(symbol: str) -> str | None:
     return None
 
 
-def fetch_quote_types(
-    symbols: list[str], *, batch_size: int = 100
-) -> dict[str, str]:
+def fetch_quote_types(symbols: list[str], *, batch_size: int = 100) -> dict[str, str]:
     """Return ``{symbol: quoteType}`` from Yahoo's batched quote endpoint.
 
     Symbols Yahoo doesn't recognize (e.g. dotted warrant/unit tickers) are
@@ -111,14 +108,11 @@ def fetch_quote_types(
             sym = quote.get("symbol")
             if sym:
                 quote_types[sym] = quote.get("quoteType")
-        print(f"  fetched quoteType for {min(i + batch_size, len(symbols))}"
-              f"/{len(symbols)} symbols")
+        print(f"  fetched quoteType for {min(i + batch_size, len(symbols))}/{len(symbols)} symbols")
     return quote_types
 
 
-def classify(
-    symbols: list[str], quote_types: dict[str, str]
-) -> list[tuple[str, str]]:
+def classify(symbols: list[str], quote_types: dict[str, str]) -> list[tuple[str, str]]:
     """Return ``(symbol, reason)`` rows for every skippable symbol.
 
     ETF classification (from Yahoo) takes precedence over the ticker-suffix
@@ -135,9 +129,7 @@ def classify(
     return rows
 
 
-def write_skip_file(
-    rows: list[tuple[str, str]], path: Path = SKIP_SYMBOLS_FILE
-) -> None:
+def write_skip_file(rows: list[tuple[str, str]], path: Path = SKIP_SYMBOLS_FILE) -> None:
     """Write ``rows`` to ``path`` as a two-column CSV, sorted by symbol."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as f:
