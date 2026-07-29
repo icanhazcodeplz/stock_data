@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from stock_data.clients.yahoo import Financials
 from stock_data.storage import (
     connect,
+    delete_older_fundamentals,
     get_latest_fundamentals,
     get_latest_per_symbol,
     insert_fundamentals,
@@ -83,6 +84,33 @@ def test_get_latest_fundamentals_returns_latest_full_row_per_symbol(tmp_path):
         assert by_symbol["MSFT"]["float_shares"] == 1_000_000
 
         assert get_latest_fundamentals(conn, []) == []
+    finally:
+        conn.close()
+
+
+def test_delete_older_fundamentals_keeps_only_newest_row(tmp_path):
+    db_path = tmp_path / "fundamentals.db"
+    conn = connect(db_path)
+    try:
+        t1 = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+        t2 = t1 + timedelta(days=1)
+        t3 = t2 + timedelta(days=1)
+
+        insert_fundamentals(conn, [_make_financials("AAPL"), _make_financials("MSFT")], retrieval_datetime=t1)
+        insert_fundamentals(conn, [_make_financials("AAPL")], retrieval_datetime=t2)
+        insert_fundamentals(conn, [_make_financials("AAPL")], retrieval_datetime=t3)
+
+        deleted = delete_older_fundamentals(conn, "AAPL")
+
+        assert deleted == 2
+        rows = conn.execute("SELECT symbol, retrieval_datetime FROM fundamentals ORDER BY symbol").fetchall()
+        # Only AAPL's newest row survives; MSFT is untouched.
+        assert rows == [("AAPL", t3.isoformat()), ("MSFT", t1.isoformat())]
+
+        # A symbol with a single row is a no-op.
+        assert delete_older_fundamentals(conn, "MSFT") == 0
+        # As is a symbol with no rows at all.
+        assert delete_older_fundamentals(conn, "NOPE") == 0
     finally:
         conn.close()
 

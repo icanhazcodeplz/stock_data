@@ -168,6 +168,17 @@ class TestRecordHandling:
         # ...but the row is stored under the original Alpaca symbol.
         assert [row[0] for row in env.db_rows()] == ["BRK.B"]
 
+    def test_refetch_replaces_previous_row(self, env):
+        env.set_universe(["AAA"])
+        env.seed_db("AAA", OLD)
+
+        gsd.get_stock_data()
+
+        # The stale row is removed; only the fresh row remains.
+        rows = env.db_rows()
+        assert [row[0] for row in rows] == ["AAA"]
+        assert rows[0][1] != OLD.isoformat()
+
     def test_fetch_failure_does_not_stop_run(self, env, capsys):
         env.set_universe(["AAA", "BBB"])
 

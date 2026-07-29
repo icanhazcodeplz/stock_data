@@ -79,6 +79,26 @@ def insert_fundamentals(
     return cursor.rowcount
 
 
+def delete_older_fundamentals(conn: sqlite3.Connection, symbol: str) -> int:
+    """Delete every row for ``symbol`` except its most recent one.
+
+    Returns the number of rows deleted. Called after a successful refetch so
+    the database keeps only the latest row per symbol.
+    """
+    cursor = conn.execute(
+        """
+        DELETE FROM fundamentals
+        WHERE symbol = ?
+          AND retrieval_datetime < (
+              SELECT MAX(retrieval_datetime) FROM fundamentals WHERE symbol = ?
+          )
+        """,
+        (symbol, symbol),
+    )
+    conn.commit()
+    return cursor.rowcount
+
+
 def get_latest_per_symbol(
     conn: sqlite3.Connection,
     symbols: Iterable[str] | None = None,

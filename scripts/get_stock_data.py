@@ -3,7 +3,9 @@
 
 Refreshes the symbol list (skipping the fetch if it was already updated
 today), pulls Yahoo Finance fundamentals for a budgeted batch of symbols,
-and stores the results in the fundamentals sqlite database.
+and stores the results in the fundamentals sqlite database. A successful
+refetch replaces the symbol's previous row, so the database holds one row
+per symbol (the latest); a failed fetch leaves the old row in place.
 
 Each run spends at most ``MAX_YAHOO_CALLS_PER_RUN`` Yahoo calls: symbols
 never fetched come first (alphabetically), then previously fetched symbols
@@ -43,6 +45,7 @@ from stock_data.get_all_stock_names import refresh_symbols_if_stale  # noqa: E40
 from stock_data.io_utils import read_symbols  # noqa: E402
 from stock_data.storage import (  # noqa: E402
     connect,
+    delete_older_fundamentals,
     get_latest_per_symbol,
     insert_fundamentals,
 )
@@ -116,6 +119,7 @@ def get_stock_data(max_calls: int = MAX_YAHOO_CALLS_PER_RUN) -> None:
             # Store under the Alpaca symbol so DB keys match all_symbols.txt.
             financials.symbol = symbol
             insert_fundamentals(conn, [financials])
+            delete_older_fundamentals(conn, symbol)
             fetched += 1
             print(f"  {symbol}: sector={financials.sector!r} float_shares={financials.float_shares}")
     finally:
