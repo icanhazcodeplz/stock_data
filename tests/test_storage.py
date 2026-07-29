@@ -1,7 +1,13 @@
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
 from stock_data.clients.yahoo import Financials
-from stock_data.storage import connect, get_latest_per_symbol, insert_fundamentals
+from stock_data.storage import (
+    connect,
+    get_latest_fundamentals,
+    get_latest_per_symbol,
+    insert_fundamentals,
+)
 
 
 def _make_financials(symbol: str) -> Financials:
@@ -55,6 +61,32 @@ def test_insert_and_get_latest_per_symbol_roundtrip(tmp_path):
         conn.close()
 
 
+def test_get_latest_fundamentals_returns_latest_full_row_per_symbol(tmp_path):
+    db_path = tmp_path / "fundamentals.db"
+    conn = connect(db_path)
+    try:
+        t1 = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+        t2 = t1 + timedelta(days=1)
+
+        stale_aapl = replace(_make_financials("AAPL"), sector="Outdated")
+        insert_fundamentals(conn, [stale_aapl, _make_financials("MSFT")], retrieval_datetime=t1)
+        insert_fundamentals(conn, [_make_financials("AAPL")], retrieval_datetime=t2)
+
+        rows = get_latest_fundamentals(conn, ["AAPL", "MSFT", "NOPE"])
+
+        by_symbol = {row["symbol"]: row for row in rows}
+        # NOPE has no rows, so it is absent rather than null-filled.
+        assert set(by_symbol) == {"AAPL", "MSFT"}
+        # Only AAPL's newest row survives, with the full column set.
+        assert by_symbol["AAPL"]["retrieval_datetime"] == t2.isoformat()
+        assert by_symbol["AAPL"]["sector"] == "Technology"
+        assert by_symbol["MSFT"]["float_shares"] == 1_000_000
+
+        assert get_latest_fundamentals(conn, []) == []
+    finally:
+        conn.close()
+
+
 def test_connect_sets_pragmas_and_creates_schema(tmp_path):
     db_path = tmp_path / "fundamentals.db"
     conn = connect(db_path)
@@ -66,15 +98,12 @@ def test_connect_sets_pragmas_and_creates_schema(tmp_path):
         assert synchronous == 1
 
         # Table exists
-        row = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='fundamentals'"
-        ).fetchone()
+        row = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='fundamentals'").fetchone()
         assert row is not None
 
         # Index exists
         row = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='index' "
-            "AND name='idx_fundamentals_symbol_retrieval'"
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_fundamentals_symbol_retrieval'"
         ).fetchone()
         assert row is not None
     finally:

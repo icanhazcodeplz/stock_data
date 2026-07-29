@@ -217,6 +217,10 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# macOS / IDE
+.DS_Store
+.idea/
+
 # Project specific
 data/all_symbols.txt
 data/fundamentals.db

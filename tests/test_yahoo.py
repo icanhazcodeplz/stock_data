@@ -2,6 +2,8 @@ import pytest
 
 from stock_data.clients.yahoo import get_financials
 
+pytestmark = pytest.mark.network
+
 
 @pytest.mark.parametrize("symbol", ["AAPL", "MWC"])
 def test_financials(symbol):

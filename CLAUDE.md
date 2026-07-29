@@ -20,6 +20,8 @@ Daily utility that runs each morning to collect stock information, indicators, a
 - `ALPACA_KEY` / `ALPACA_SECRET` — live market-data credentials.
 - `ALPACA_PAPER_KEY` / `ALPACA_PAPER_SECRET` — paper-trading credentials.
 
+Credentials are read lazily (a descriptor resolves each name from the environment on access), so importing `settings` — e.g. for `REPO_ROOT` — never requires a `.env`; a missing variable raises `RuntimeError` only when actually used.
+
 `REPO_ROOT` is defined as the directory containing `settings.py`. Because `settings.py` sits at the repo root rather than inside the package, importing it requires running from the repo root (or having the repo root on `sys.path`).
 
 ## Architecture
@@ -33,7 +35,7 @@ Daily utility that runs each morning to collect stock information, indicators, a
 - `stock_data/read_fundamentals.py` — read-side entry point; loads the latest stored fundamentals for the working universe as dicts (or a DataFrame when run as a script).
 - `scripts/get_stock_data.py` — the daily entry point (see Storage below). Budgeted: at most `MAX_YAHOO_CALLS_PER_RUN` Yahoo calls per run, missing symbols first, then stalest, skipping anything fresher than `MIN_REFRESH_AGE_DAYS`.
 - `scripts/build_skip_symbols.py` — rebuilds `data/skip_symbols.csv` (ETFs, warrants/rights/units, preferreds); intended to run weekly.
-- `tests/` — pytest test modules. Run with `uv run pytest` from the repo root, or target a single file: `uv run pytest tests/test_get_all_stock_names.py`.
+- `tests/` — pytest test modules. Run with `uv run pytest` from the repo root, or target a single file: `uv run pytest tests/test_storage.py`. Tests that hit live APIs (Alpaca, Yahoo) are marked `network` and excluded by default (see `[tool.pytest.ini_options]` in `pyproject.toml`); run them with `uv run pytest -m network`. New tests against external services must carry that marker.
 
 When adding new data-source clients, read credentials from `settings.ENV` rather than `os.environ` directly.
 

@@ -25,6 +25,14 @@ def test_creates_parent_directory_if_missing(tmp_path: Path):
     assert target.read_text() == "AAA\nBBB\n"
 
 
+def test_deduplicates_symbols_listed_on_multiple_exchanges(tmp_path: Path):
+    target = tmp_path / "symbols.txt"
+
+    write_symbols_file(["BBB", "AAA", "BBB"], path=target)
+
+    assert target.read_text() == "AAA\nBBB\n"
+
+
 def test_does_not_mutate_input_list(tmp_path: Path):
     target = tmp_path / "symbols.txt"
     symbols = ["ZZZ", "AAA", "MMM"]
