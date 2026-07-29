@@ -26,3 +26,11 @@ dev = [
 
 [tool.ruff]
 line-length = 120
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Live-API tests are opt-in: `uv run pytest -m network`.
+addopts = "-m 'not network'"
+markers = [
+    "network: hits live external APIs (Alpaca, Yahoo); excluded by default",
+]

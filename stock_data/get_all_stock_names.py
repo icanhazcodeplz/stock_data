@@ -37,12 +37,15 @@ def write_symbols_file(
     symbols: list[str],
     path: Path = DEFAULT_SYMBOLS_FILE,
 ) -> None:
-    """Write ``symbols`` to ``path``, one per line, sorted, with a trailing newline.
+    """Write ``symbols`` to ``path``, one per line, sorted and deduplicated,
+    with a trailing newline.
 
-    Ensures the parent directory exists before writing.
+    Symbols listed on multiple exchanges arrive more than once; the file is
+    a universe, so each symbol is written once. Ensures the parent directory
+    exists before writing.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    sorted_symbols = sorted(symbols)
+    sorted_symbols = sorted(set(symbols))
     path.write_text("\n".join(sorted_symbols) + "\n")
 
 
@@ -53,16 +56,20 @@ def symbols_file_updated_today(path: Path = DEFAULT_SYMBOLS_FILE) -> bool:
     return date.fromtimestamp(path.stat().st_mtime) == date.today()
 
 
-def fetch_and_write_all_symbols() -> list[str]:
-    """Fetch all symbols with the defaults, write them to the symbols file,
-    and print a summary of what was fetched."""
+def fetch_and_write_all_symbols(path: Path = DEFAULT_SYMBOLS_FILE) -> list[str]:
+    """Fetch all symbols with the defaults, write them to ``path``, and print
+    a summary of what was fetched.
+
+    Returns the sorted, deduplicated symbols as written to the file.
+    """
     start = time.perf_counter()
     symbols = get_all_stock_names()
     elapsed = time.perf_counter() - start
 
-    write_symbols_file(symbols)
+    write_symbols_file(symbols, path)
+    unique = sorted(set(symbols))
 
-    dotted = [s for s in symbols if "." in s]
+    dotted = [s for s in unique if "." in s]
     counts = Counter(symbols)
     duplicates = {sym: c for sym, c in counts.items() if c > 1}
 
@@ -73,22 +80,22 @@ def fetch_and_write_all_symbols() -> list[str]:
     if duplicates:
         for sym, count in list(duplicates.items())[:10]:
             print(f"  {sym} ({count}x)")
-    print(f"Wrote {len(symbols)} symbols to {DEFAULT_SYMBOLS_FILE}")
+    print(f"Wrote {len(unique)} symbols to {path}")
 
-    return symbols
+    return unique
 
 
-def refresh_symbols_if_stale() -> list[str]:
+def refresh_symbols_if_stale(path: Path = DEFAULT_SYMBOLS_FILE) -> list[str]:
     """Refetch and rewrite the symbols file unless it was already updated today.
 
     Returns the symbols either way: fresh from the API, or read back from the
     existing file when the fetch is skipped.
     """
-    if symbols_file_updated_today():
-        print(f"{DEFAULT_SYMBOLS_FILE} was already updated today; skipping refetch.")
-        return DEFAULT_SYMBOLS_FILE.read_text().splitlines()
-    print(f"{DEFAULT_SYMBOLS_FILE} was not updated today; refetching symbols.")
-    return fetch_and_write_all_symbols()
+    if symbols_file_updated_today(path):
+        print(f"{path} was already updated today; skipping refetch.")
+        return path.read_text().splitlines()
+    print(f"{path} was not updated today; refetching symbols.")
+    return fetch_and_write_all_symbols(path)
 
 
 if __name__ == "__main__":
