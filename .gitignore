@@ -226,4 +226,8 @@ data/all_symbols.txt
 data/fundamentals.db
 data/fundamentals.db-shm
 data/fundamentals.db-wal
+# Dated backups from `sqlite3 ... ".backup ..."`
+data/fundamentals-*.db
+data/fundamentals-*.db-shm
+data/fundamentals-*.db-wal
 plan/
