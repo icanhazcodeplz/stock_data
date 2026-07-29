@@ -59,7 +59,7 @@ MAX_YAHOO_CALLS_PER_RUN = 500
 MIN_REFRESH_AGE_DAYS = 7
 
 
-def yahoo_symbol(symbol: str) -> str:
+def alpaca_to_yahoo_symbol(symbol: str) -> str:
     """Translate Alpaca share-class notation to Yahoo's (``BRK.B`` -> ``BRK-B``).
 
     Only single-letter share-class suffixes survive the skip list, and for
@@ -78,8 +78,12 @@ def _is_all_null(financials: Financials) -> bool:
     )
 
 
-def get_stock_data() -> None:
-    """Refresh symbols, fetch a budgeted batch of Yahoo fundamentals, store them."""
+def get_stock_data(max_calls: int = MAX_YAHOO_CALLS_PER_RUN) -> None:
+    """Refresh symbols, fetch a budgeted batch of Yahoo fundamentals, store them.
+
+    ``max_calls`` caps the Yahoo lookups for this run; the default is the
+    daily budget, and manual runs can pass something smaller.
+    """
     refresh_symbols_if_stale()
     symbols = read_symbols()
 
@@ -89,7 +93,7 @@ def get_stock_data() -> None:
         cutoff = datetime.now(timezone.utc) - timedelta(days=MIN_REFRESH_AGE_DAYS)
         missing = sorted(set(symbols) - latest.keys())
         stale = sorted((s for s in latest if latest[s] < cutoff), key=lambda s: latest[s])
-        to_fetch = (missing + stale)[:MAX_YAHOO_CALLS_PER_RUN]
+        to_fetch = (missing + stale)[:max_calls]
         print(
             f"Universe: {len(symbols)} symbols "
             f"({len(missing)} missing, {len(stale)} stale, "
@@ -100,7 +104,7 @@ def get_stock_data() -> None:
         failed: list[str] = []
         for symbol in to_fetch:
             try:
-                financials = get_financials(yahoo_symbol(symbol))
+                financials = get_financials(alpaca_to_yahoo_symbol(symbol))
             except Exception as exc:
                 failed.append(symbol)
                 print(f"  {symbol}: FAILED to fetch ({exc!r})")

@@ -45,153 +45,152 @@ def _all_null_financials(symbol: str) -> Financials:
     )
 
 
+class FakeEnvironment:
+    """Patched-out world for one test: tmp DB, canned universe, recorded calls."""
+
+    def __init__(self, monkeypatch, db_path):
+        self.monkeypatch = monkeypatch
+        self.db_path = db_path
+        self.calls: list[str] = []
+
+        monkeypatch.setattr(gsd, "refresh_symbols_if_stale", lambda: None)
+        monkeypatch.setattr(gsd, "connect", lambda: connect(db_path))
+        monkeypatch.setattr(gsd, "get_financials", self._fake_get_financials)
+
+    def _fake_get_financials(self, symbol: str) -> Financials:
+        self.calls.append(symbol)
+        return _make_financials(symbol)
+
+    def set_universe(self, symbols: list[str]) -> None:
+        self.monkeypatch.setattr(gsd, "read_symbols", lambda: symbols)
+
+    def seed_db(self, symbol: str, when: datetime) -> None:
+        conn = connect(self.db_path)
+        try:
+            insert_fundamentals(conn, [_make_financials(symbol)], retrieval_datetime=when)
+        finally:
+            conn.close()
+
+    def db_rows(self) -> list[tuple[str, str]]:
+        conn = connect(self.db_path)
+        try:
+            return conn.execute(
+                "SELECT symbol, retrieval_datetime FROM fundamentals ORDER BY retrieval_datetime"
+            ).fetchall()
+        finally:
+            conn.close()
+
+
 @pytest.fixture
-def env(monkeypatch, tmp_path):
-    """Patch out network and filesystem; record get_financials call order."""
-    db_path = tmp_path / "fundamentals.db"
-    calls: list[str] = []
-
-    monkeypatch.setattr(gsd, "refresh_symbols_if_stale", lambda: None)
-    monkeypatch.setattr(gsd, "connect", lambda: connect(db_path))
-
-    def fake_get_financials(symbol: str) -> Financials:
-        calls.append(symbol)
-        return _make_financials(symbol)
-
-    monkeypatch.setattr(gsd, "get_financials", fake_get_financials)
-
-    class Env:
-        pass
-
-    e = Env()
-    e.db_path = db_path
-    e.calls = calls
-    e.monkeypatch = monkeypatch
-    return e
+def env(monkeypatch, tmp_path) -> FakeEnvironment:
+    return FakeEnvironment(monkeypatch, tmp_path / "fundamentals.db")
 
 
-def _set_universe(env, symbols: list[str]) -> None:
-    env.monkeypatch.setattr(gsd, "read_symbols", lambda: symbols)
+class TestFetchPrioritization:
+    """Which symbols a run selects, and in what order."""
+
+    def test_budget_caps_calls(self, env):
+        universe = [f"SYM{i:03d}" for i in range(200)]
+        env.set_universe(universe)
+
+        gsd.get_stock_data(max_calls=50)
+
+        assert len(env.calls) == 50
+        assert len(env.db_rows()) == 50
+        # Missing symbols are fetched in sorted order.
+        assert env.calls == sorted(universe)[:50]
+
+    def test_max_calls_defaults_to_daily_budget(self):
+        import inspect
+
+        default = inspect.signature(gsd.get_stock_data).parameters["max_calls"].default
+        assert default == gsd.MAX_YAHOO_CALLS_PER_RUN
+
+    def test_missing_before_stale(self, env):
+        env.set_universe(["AAA", "BBB", "CCC"])
+        env.seed_db("BBB", OLD + timedelta(days=2))  # newer of the two stale rows
+        env.seed_db("CCC", OLD)  # oldest
+
+        gsd.get_stock_data()
+
+        assert env.calls == ["AAA", "CCC", "BBB"]
+
+    def test_stale_oldest_first(self, env):
+        env.set_universe(["AAA", "BBB", "CCC"])
+        env.seed_db("AAA", OLD + timedelta(days=2))
+        env.seed_db("BBB", OLD)
+        env.seed_db("CCC", OLD + timedelta(days=1))
+
+        gsd.get_stock_data()
+
+        assert env.calls == ["BBB", "CCC", "AAA"]
+
+    def test_fresh_symbols_not_refetched(self, env):
+        env.set_universe(["AAA", "BBB"])
+        env.seed_db("AAA", OLD)
+        env.seed_db("BBB", datetime.now(timezone.utc) - timedelta(days=1))  # fresh
+
+        gsd.get_stock_data()
+
+        assert env.calls == ["AAA"]
+
+    def test_delisted_symbols_ignored_history_preserved(self, env):
+        env.set_universe(["AAA"])
+        env.seed_db("GONE", OLD)  # in the DB but no longer in the universe
+
+        gsd.get_stock_data()
+
+        assert env.calls == ["AAA"]
+        assert {row[0] for row in env.db_rows()} == {"GONE", "AAA"}
 
 
-def _seed(env, symbol: str, when: datetime) -> None:
-    conn = connect(env.db_path)
-    try:
-        insert_fundamentals(conn, [_make_financials(symbol)], retrieval_datetime=when)
-    finally:
-        conn.close()
+class TestRecordHandling:
+    """What happens to each fetched record on its way into the DB."""
+
+    def test_all_null_record_not_inserted(self, env, capsys):
+        env.set_universe(["ZZZQ"])
+        env.monkeypatch.setattr(gsd, "get_financials", _all_null_financials)
+
+        gsd.get_stock_data()
+
+        assert env.db_rows() == []
+        out = capsys.readouterr().out
+        assert "not stored" in out
+        assert "Failed (1): ZZZQ" in out
+
+    def test_dotted_symbol_translated(self, env):
+        env.set_universe(["BRK.B"])
+
+        gsd.get_stock_data()
+
+        # Yahoo is called with the dash form...
+        assert env.calls == ["BRK-B"]
+        # ...but the row is stored under the original Alpaca symbol.
+        assert [row[0] for row in env.db_rows()] == ["BRK.B"]
+
+    def test_fetch_failure_does_not_stop_run(self, env, capsys):
+        env.set_universe(["AAA", "BBB"])
+
+        def flaky(symbol: str) -> Financials:
+            env.calls.append(symbol)
+            if symbol == "AAA":
+                raise RuntimeError("boom")
+            return _make_financials(symbol)
+
+        env.monkeypatch.setattr(gsd, "get_financials", flaky)
+
+        gsd.get_stock_data()
+
+        assert env.calls == ["AAA", "BBB"]
+        assert [row[0] for row in env.db_rows()] == ["BBB"]
+        assert "Failed (1): AAA" in capsys.readouterr().out
 
 
-def _db_rows(env) -> list[tuple[str, str]]:
-    conn = connect(env.db_path)
-    try:
-        return conn.execute(
-            "SELECT symbol, retrieval_datetime FROM fundamentals ORDER BY retrieval_datetime"
-        ).fetchall()
-    finally:
-        conn.close()
+class TestAlpacaToYahooSymbol:
+    """The share-class ticker translation helper."""
 
+    def test_plain_symbol_passes_through(self):
+        assert gsd.alpaca_to_yahoo_symbol("AAPL") == "AAPL"
 
-def test_budget_caps_calls(env):
-    universe = [f"SYM{i:03d}" for i in range(200)]
-    _set_universe(env, universe)
-    env.monkeypatch.setattr(gsd, "MAX_YAHOO_CALLS_PER_RUN", 50)
-
-    gsd.get_stock_data()
-
-    assert len(env.calls) == 50
-    assert len(_db_rows(env)) == 50
-    # Missing symbols are fetched in sorted order.
-    assert env.calls == sorted(universe)[:50]
-
-
-def test_missing_before_stale(env):
-    _set_universe(env, ["AAA", "BBB", "CCC"])
-    _seed(env, "BBB", OLD + timedelta(days=2))  # newer of the two stale rows
-    _seed(env, "CCC", OLD)  # oldest
-
-    gsd.get_stock_data()
-
-    assert env.calls == ["AAA", "CCC", "BBB"]
-
-
-def test_stale_oldest_first(env):
-    _set_universe(env, ["AAA", "BBB", "CCC"])
-    _seed(env, "AAA", OLD + timedelta(days=2))
-    _seed(env, "BBB", OLD)
-    _seed(env, "CCC", OLD + timedelta(days=1))
-
-    gsd.get_stock_data()
-
-    assert env.calls == ["BBB", "CCC", "AAA"]
-
-
-def test_fresh_symbols_not_refetched(env):
-    _set_universe(env, ["AAA", "BBB"])
-    _seed(env, "AAA", OLD)
-    _seed(env, "BBB", datetime.now(timezone.utc) - timedelta(days=1))  # fresh
-
-    gsd.get_stock_data()
-
-    assert env.calls == ["AAA"]
-
-
-def test_delisted_symbols_ignored_history_preserved(env):
-    _set_universe(env, ["AAA"])
-    _seed(env, "GONE", OLD)  # in the DB but no longer in the universe
-
-    gsd.get_stock_data()
-
-    assert env.calls == ["AAA"]
-    assert {row[0] for row in _db_rows(env)} == {"GONE", "AAA"}
-
-
-def test_all_null_record_not_inserted(env, capsys):
-    _set_universe(env, ["ZZZQ"])
-    env.monkeypatch.setattr(
-        gsd,
-        "get_financials",
-        lambda symbol: _all_null_financials(symbol),
-    )
-
-    gsd.get_stock_data()
-
-    assert _db_rows(env) == []
-    out = capsys.readouterr().out
-    assert "not stored" in out
-    assert "Failed (1): ZZZQ" in out
-
-
-def test_dotted_symbol_translated(env):
-    _set_universe(env, ["BRK.B"])
-
-    gsd.get_stock_data()
-
-    # Yahoo is called with the dash form...
-    assert env.calls == ["BRK-B"]
-    # ...but the row is stored under the original Alpaca symbol.
-    assert [row[0] for row in _db_rows(env)] == ["BRK.B"]
-
-
-def test_fetch_failure_does_not_stop_run(env, capsys):
-    _set_universe(env, ["AAA", "BBB"])
-
-    def flaky(symbol: str) -> Financials:
-        env.calls.append(symbol)
-        if symbol == "AAA":
-            raise RuntimeError("boom")
-        return _make_financials(symbol)
-
-    env.monkeypatch.setattr(gsd, "get_financials", flaky)
-
-    gsd.get_stock_data()
-
-    assert env.calls == ["AAA", "BBB"]
-    assert [row[0] for row in _db_rows(env)] == ["BBB"]
-    assert "Failed (1): AAA" in capsys.readouterr().out
-
-
-def test_yahoo_symbol_translation():
-    """yahoo_symbol only rewrites dots; plain symbols pass through."""
-    assert gsd.yahoo_symbol("AAPL") == "AAPL"
-    assert gsd.yahoo_symbol("BRK.B") == "BRK-B"
+    def test_share_class_dot_becomes_dash(self):
+        assert gsd.alpaca_to_yahoo_symbol("BRK.B") == "BRK-B"
