@@ -1,9 +1,19 @@
-"""Offline tests for the skip-list classifier (pure functions only; the
-Yahoo quoteType fetch is exercised separately by the weekly run itself)."""
+"""Offline tests for the skip-list classifier and its staleness check (pure
+functions only; the Yahoo quoteType fetch is exercised by the real run)."""
+
+import os
+import time
 
 import pytest
 
-from scripts.build_skip_symbols import classify, structural_reason
+from scripts import build_skip_symbols as bss
+from scripts.build_skip_symbols import (
+    MAX_SKIP_SYMBOLS_AGE_DAYS,
+    classify,
+    rebuild_skip_symbols_if_stale,
+    skip_file_is_stale,
+    structural_reason,
+)
 
 
 class TestStructuralReason:
@@ -71,3 +81,48 @@ class TestClassify:
             {"AAPL": "EQUITY", "SPY": "ETF", "BRK.B": "EQUITY"},
         )
         assert rows == [("SPY", "ETF"), ("FOO.PRA", "preferred"), ("ABCDW", "warrant")]
+
+
+def _write_aged(path, age_days: float):
+    """Write a skip file and backdate its mtime by ``age_days``."""
+    path.write_text("symbol,reason\nSPY,ETF\n")
+    mtime = time.time() - age_days * 86400
+    os.utime(path, (mtime, mtime))
+    return path
+
+
+class TestSkipFileIsStale:
+    def test_missing_file_is_stale(self, tmp_path):
+        assert skip_file_is_stale(tmp_path / "skip_symbols.csv") is True
+
+    def test_fresh_file_is_not_stale(self, tmp_path):
+        path = _write_aged(tmp_path / "skip_symbols.csv", age_days=0)
+        assert skip_file_is_stale(path) is False
+
+    def test_file_just_under_max_age_is_not_stale(self, tmp_path):
+        path = _write_aged(tmp_path / "skip_symbols.csv", age_days=MAX_SKIP_SYMBOLS_AGE_DAYS - 0.1)
+        assert skip_file_is_stale(path) is False
+
+    def test_file_past_max_age_is_stale(self, tmp_path):
+        path = _write_aged(tmp_path / "skip_symbols.csv", age_days=MAX_SKIP_SYMBOLS_AGE_DAYS + 0.1)
+        assert skip_file_is_stale(path) is True
+
+
+class TestRebuildSkipSymbolsIfStale:
+    def test_rebuilds_when_missing(self, tmp_path, monkeypatch):
+        calls = []
+        monkeypatch.setattr(bss, "build_skip_symbols", lambda **kwargs: calls.append(kwargs))
+        path = tmp_path / "skip_symbols.csv"
+
+        rebuild_skip_symbols_if_stale(path)
+
+        assert calls == [{"path": path}]
+
+    def test_skips_rebuild_when_fresh(self, tmp_path, monkeypatch):
+        def fail(**kwargs):
+            raise AssertionError("should not rebuild a fresh skip file")
+
+        monkeypatch.setattr(bss, "build_skip_symbols", fail)
+        path = _write_aged(tmp_path / "skip_symbols.csv", age_days=0)
+
+        rebuild_skip_symbols_if_stale(path)

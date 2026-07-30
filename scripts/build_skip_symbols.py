@@ -31,6 +31,9 @@ The output CSV has two columns, ``symbol`` and ``reason``, where
 ``preferred``, ``when-issued``. It is committed so downstream jobs can
 skip these symbols without re-querying Yahoo.
 
+The daily run calls ``rebuild_skip_symbols_if_stale()`` itself, so this
+script only needs to be run by hand to force an immediate rebuild.
+
 Usage:
     uv run python scripts/build_skip_symbols.py
 
@@ -40,6 +43,7 @@ Run from the repo root so ``settings`` and ``stock_data`` are importable.
 import csv
 import sys
 from collections import Counter
+from datetime import datetime, timedelta
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -54,6 +58,10 @@ from stock_data.io_utils import (  # noqa: E402
 )
 
 QUOTE_URL = "https://query2.finance.yahoo.com/v7/finance/quote"
+
+# The skip list only shifts as listings are created and retired, so a few days
+# of drift costs nothing; a rebuild is a full pass over Yahoo's quote endpoint.
+MAX_SKIP_SYMBOLS_AGE_DAYS = 3
 
 # Dotted (Alpaca) suffixes -> reason.
 _DOTTED_SUFFIXES: dict[str, str] = {
@@ -144,7 +152,7 @@ def write_skip_file(rows: list[tuple[str, str]], path: Path = SKIP_SYMBOLS_FILE)
         writer.writerows(sorted(rows))
 
 
-def build_skip_symbols(limit: int | None = None) -> None:
+def build_skip_symbols(limit: int | None = None, path: Path = SKIP_SYMBOLS_FILE) -> None:
     """Read the symbols file, classify skippable symbols, and write the CSV."""
     symbols = DEFAULT_SYMBOLS_FILE.read_text().split()
     if limit is not None:
@@ -153,12 +161,34 @@ def build_skip_symbols(limit: int | None = None) -> None:
     print(f"Classifying {len(symbols)} symbols...")
     quote_types = fetch_quote_types(symbols)
     rows = classify(symbols, quote_types)
-    write_skip_file(rows)
+    write_skip_file(rows, path)
 
     counts = Counter(reason for _, reason in rows)
-    print(f"\nWrote {len(rows)} skip symbol(s) to {SKIP_SYMBOLS_FILE}")
+    print(f"\nWrote {len(rows)} skip symbol(s) to {path}")
     for reason, count in sorted(counts.items()):
         print(f"  {reason}: {count}")
+
+
+def skip_file_is_stale(path: Path = SKIP_SYMBOLS_FILE) -> bool:
+    """Return True if the skip list is missing or older than the max age."""
+    if not path.exists():
+        return True
+    age = datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)
+    return age > timedelta(days=MAX_SKIP_SYMBOLS_AGE_DAYS)
+
+
+def rebuild_skip_symbols_if_stale(path: Path = SKIP_SYMBOLS_FILE) -> None:
+    """Rebuild the skip list unless it is still fresh.
+
+    Called by the daily run so a missing or aging skip list can't quietly
+    send warrants, units, and ETFs into the Yahoo budget. Must run after the
+    symbols file is refreshed, since the classification reads it.
+    """
+    if not skip_file_is_stale(path):
+        print(f"{path} is less than {MAX_SKIP_SYMBOLS_AGE_DAYS} days old; skipping rebuild.")
+        return
+    print(f"{path} is missing or more than {MAX_SKIP_SYMBOLS_AGE_DAYS} days old; rebuilding.")
+    build_skip_symbols(path=path)
 
 
 if __name__ == "__main__":

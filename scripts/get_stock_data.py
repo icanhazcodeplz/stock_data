@@ -14,7 +14,9 @@ Symbols already fresher than that are left alone, so a rerun on the same
 day picks up where the previous run stopped instead of repeating it.
 
 Symbols listed in ``data/skip_symbols.csv`` (ETFs, warrants/rights/units,
-preferreds) are dropped by ``read_symbols()``. The dotted symbols that
+preferreds, when-issued lines) are dropped by ``read_symbols()``; that
+file is rebuilt at the top of the run whenever it is missing or more than
+``MAX_SKIP_SYMBOLS_AGE_DAYS`` old. The dotted symbols that
 remain are share classes (e.g. "BRK.B"), which Yahoo writes with a dash
 ("BRK-B"); the ticker is translated for the Yahoo call but the row is
 stored under the original Alpaca symbol so the database stays keyed
@@ -43,6 +45,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from scripts.build_skip_symbols import rebuild_skip_symbols_if_stale  # noqa: E402
 from stock_data.clients.yahoo import Financials, get_financials  # noqa: E402
 from stock_data.get_all_stock_names import refresh_symbols_if_stale  # noqa: E402
 from stock_data.io_utils import read_symbols  # noqa: E402
@@ -104,6 +107,8 @@ def get_stock_data(max_calls: int = MAX_YAHOO_CALLS_PER_RUN) -> None:
     daily budget, and manual runs can pass something smaller.
     """
     refresh_symbols_if_stale()
+    rebuild_skip_symbols_if_stale()
+
     symbols = read_symbols()
 
     conn = connect()
