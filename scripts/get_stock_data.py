@@ -23,9 +23,17 @@ stored under the original Alpaca symbol so the database stays keyed
 consistently with ``all_symbols.txt``.
 
 Yahoo does not raise on a ticker it has no fundamentals for — it returns a
-record with every company field ``None`` — so those records are counted as
-failures and never inserted, otherwise their fresh ``retrieval_datetime``
-would permanently hide the symbol from future runs. ``exchange`` does not
+record with every company field ``None`` — so those records are never
+inserted, otherwise their fresh ``retrieval_datetime`` would permanently
+hide the symbol from future runs. Instead the symbol is appended to
+``skip_symbols.csv`` with reason ``yahoo_unknown``: having no row at all
+leaves it in ``missing``, at the front of the queue, where it would burn a
+call on every future run. That verdict expires after
+``YAHOO_UNKNOWN_RETRY_DAYS``, so a symbol Yahoo simply hadn't indexed yet (a
+recent IPO, a thinly covered small cap) gets another chance; if the retry
+returns data the skip entry is removed, and if it doesn't the clock resets.
+A fetch that *raises* is transient and is not
+skip-listed, so a Yahoo outage can't blacklist the universe. ``exchange`` does not
 count as data here: Yahoo fills it in from the quote header even for
 exchange-traded debt (baby bonds, senior notes) and for ETFs it reports as
 ``EQUITY``, none of which carry the company fields we collect.
@@ -48,7 +56,12 @@ if str(REPO_ROOT) not in sys.path:
 from scripts.build_skip_symbols import rebuild_skip_symbols_if_stale  # noqa: E402
 from stock_data.clients.yahoo import Financials, get_financials  # noqa: E402
 from stock_data.get_all_stock_names import refresh_symbols_if_stale  # noqa: E402
-from stock_data.io_utils import read_symbols  # noqa: E402
+from stock_data.io_utils import (  # noqa: E402
+    YAHOO_UNKNOWN_REASON,
+    append_skip_symbols,
+    read_symbols,
+    remove_skip_symbols,
+)
 from stock_data.storage import (  # noqa: E402
     connect,
     delete_older_fundamentals,
@@ -125,23 +138,28 @@ def get_stock_data(max_calls: int = MAX_YAHOO_CALLS_PER_RUN) -> None:
         )
 
         fetched = 0
+        stored: list[str] = []
         failed: list[str] = []
+        unknown: list[str] = []
         for symbol in to_fetch:
             try:
                 financials = get_financials(alpaca_to_yahoo_symbol(symbol))
             except Exception as exc:
+                # Transient (network, rate limit): retry on a later run rather
+                # than skip-listing a symbol Yahoo may well know about.
                 failed.append(symbol)
                 print(f"  {symbol}: FAILED to fetch ({exc!r})")
                 continue
             if _is_all_null(financials):
-                failed.append(symbol)
-                print(f"  {symbol}: all fields null (unknown to Yahoo); not stored")
+                unknown.append(symbol)
+                print(f"  {symbol}: all fields null (unknown to Yahoo); skip-listing")
                 continue
             # Store under the Alpaca symbol so DB keys match all_symbols.txt.
             financials.symbol = symbol
             insert_fundamentals(conn, [financials])
             delete_older_fundamentals(conn, symbol)
             fetched += 1
+            stored.append(symbol)
             print(f"  {symbol}: sector={financials.sector!r} float_shares={financials.float_shares}")
     finally:
         conn.close()
@@ -149,6 +167,19 @@ def get_stock_data(max_calls: int = MAX_YAHOO_CALLS_PER_RUN) -> None:
     print(f"\nFetched and stored {fetched}/{len(to_fetch)} symbols.")
     if failed:
         print(f"Failed ({len(failed)}): {', '.join(failed)}")
+    if unknown:
+        added = append_skip_symbols(unknown, YAHOO_UNKNOWN_REASON)
+        print(f"Unknown to Yahoo ({len(unknown)}): {', '.join(unknown)}")
+        print(
+            f"Skip-listed {len(added)} new symbol(s) as {YAHOO_UNKNOWN_REASON!r}; "
+            f"{len(unknown) - len(added)} already listed had their retry clock reset."
+        )
+    if stored:
+        # A retry that finally returned data: clear the stale verdict so the
+        # symbol stays in the universe instead of expiring back into it.
+        recovered = remove_skip_symbols(stored, YAHOO_UNKNOWN_REASON)
+        if recovered:
+            print(f"Recovered ({len(recovered)}): {', '.join(recovered)} — skip entry removed.")
 
 
 if __name__ == "__main__":

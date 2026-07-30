@@ -53,7 +53,22 @@ needed. To force a rebuild now:
 uv run python scripts/build_skip_symbols.py
 ```
 
-The CSV is committed, so a rebuild shows up as a working-tree change.
+The file is generated and gitignored; a fresh clone builds it on the first
+run.
+
+### `yahoo_unknown` and the retry window
+
+The daily run also appends a `yahoo_unknown` row for any symbol Yahoo
+returns no fundamentals for. Most are exchange-traded debt (baby bonds,
+subordinated notes, trust preferreds) and freshly listed ETFs Yahoo has not
+classified yet — none of which will ever have a sector or a float.
+
+These rows carry the date they were recorded and expire after
+`YAHOO_UNKNOWN_RETRY_DAYS` (30). On expiry the symbol re-enters the universe
+for one more attempt: if it returns data the skip entry is dropped, and if
+it is still unknown the clock resets. That keeps a genuinely new listing —
+a recent IPO, a thinly covered small cap — from being excluded forever,
+while costing only a handful of calls a month.
 
 ## Reading the data
 
@@ -71,7 +86,7 @@ lower-level helpers in `stock_data.storage`.
 | --- | --- | --- |
 | `data/fundamentals.db` | no | SQLite store; latest row per symbol, keyed by `(symbol, retrieval_datetime)` |
 | `data/all_symbols.txt` | no | Daily symbol snapshot from Alpaca, one symbol per line |
-| `data/skip_symbols.csv` | yes | `symbol,reason` skip list consumed by `read_symbols()` |
+| `data/skip_symbols.csv` | no | `symbol,reason,date` skip list consumed by `read_symbols()`; written by the rebuild and appended to by the daily run |
 
 Backups: `sqlite3 data/fundamentals.db ".backup 'data/fundamentals-$(date +%Y%m%d).db'"`
 is safe while a writer is active; a plain `cp` is fine when nothing is writing.
