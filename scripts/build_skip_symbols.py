@@ -20,11 +20,16 @@ Two kinds of symbols never carry the equity fundamentals we collect
   series x), which Yahoo doesn't resolve 1:1. A preferred behaves like a
   bond and carries none of the company fundamentals we store. Detected
   from the ticker suffix.
+* **When-issued lines.** Alpaca writes these as ``FOO.WI`` — a conditional
+  listing that trades between a security's announcement and its actual
+  issuance (spinoffs, reorganizations, listing changes). The fundamentals
+  belong to the underlying company, not the when-issued line, so Yahoo
+  either doesn't know the ticker or returns a near-empty record.
 
 The output CSV has two columns, ``symbol`` and ``reason``, where
 ``reason`` is one of ``ETF``, ``warrant``, ``right``, ``unit``,
-``preferred``. It is committed so downstream jobs can skip these symbols
-without re-querying Yahoo.
+``preferred``, ``when-issued``. It is committed so downstream jobs can
+skip these symbols without re-querying Yahoo.
 
 Usage:
     uv run python scripts/build_skip_symbols.py
@@ -58,6 +63,7 @@ _DOTTED_SUFFIXES: dict[str, str] = {
     "WS": "warrant",
     "WT": "warrant",
     "WSA": "warrant",
+    "WI": "when-issued",
     "R": "right",
     "RT": "right",
 }

@@ -1,4 +1,5 @@
 symbol,reason
+AAAP,ETF
 AAC.U,unit
 AACBR,right
 AACBU,unit
@@ -15,6 +16,7 @@ AALG,ETF
 AAPB,ETF
 AAPD,ETF
 AAPU,ETF
+AAUB,ETF
 AAUS,ETF
 AAVM,ETF
 AAXJ,ETF
@@ -22,7 +24,6 @@ ABCS,ETF
 ABI,ETF
 ABIG,ETF
 ABLVW,warrant
-ABNG,ETF
 ABR.PRD,preferred
 ABR.PRE,preferred
 ABR.PRF,preferred
@@ -43,6 +44,7 @@ ADACU,unit
 ADACW,warrant
 ADBG,ETF
 ADC.PRA,preferred
+ADIG.WI,when-issued
 ADSEW,warrant
 AEAQU,unit
 AEAQW,warrant
@@ -68,6 +70,7 @@ AGM.PRI,preferred
 AGMI,ETF
 AGNG,ETF
 AGZD,ETF
+AHD,ETF
 AHL.PRD,preferred
 AHL.PRE,preferred
 AHL.PRF,preferred
@@ -90,6 +93,7 @@ AIQ,ETF
 AIRJW,warrant
 AIRR,ETF
 AISPW,warrant
+AIX,ETF
 AKAF,ETF
 ALB.PRA,preferred
 ALBG,ETF
@@ -120,6 +124,7 @@ AMACU,unit
 AMDD,ETF
 AMDG,ETF
 AMDL,ETF
+AMEM,ETF
 AMGR,ETF
 AMH.PRG,preferred
 AMH.PRH,preferred
@@ -178,6 +183,7 @@ ASPCR,right
 ASPCU,unit
 ASPSW,warrant
 ASTLW,warrant
+ATC,ETF
 ATH.PRA,preferred
 ATH.PRB,preferred
 ATH.PRD,preferred
@@ -200,7 +206,6 @@ AVXX,ETF
 AXIA.PRC,preferred
 AXINR,right
 AXINU,unit
-AXPG,ETF
 AXS.PRE,preferred
 AZYY,ETF
 BA.PRA,preferred
@@ -272,6 +277,7 @@ BESS.WS,warrant
 BETRW,warrant
 BFH.PRA,preferred
 BFH.PRB,preferred
+BFLX,ETF
 BFRGW,warrant
 BFRIW,warrant
 BFS.PRD,preferred
@@ -295,10 +301,12 @@ BIDWR,right
 BIDWU,unit
 BIII.U,unit
 BIII.WS,warrant
+BIOTW,warrant
 BIOY,ETF
 BIP.PRA,preferred
 BIP.PRB,preferred
 BIS,ETF
+BITA,ETF
 BITS,ETF
 BIVIW,warrant
 BIXIU,unit
@@ -361,6 +369,7 @@ BRTR,ETF
 BRUNW,warrant
 BSAAR,right
 BSAAU,unit
+BSCA,ETF
 BSCQ,ETF
 BSCR,ETF
 BSCS,ETF
@@ -397,6 +406,7 @@ BSTU,ETF
 BSTV,ETF
 BSVO,ETF
 BTBDW,warrant
+BTDL,ETF
 BTF,ETF
 BTGD,ETF
 BTSGU,unit
@@ -429,6 +439,7 @@ CAQUW,warrant
 CARY,ETF
 CARZ,ETF
 CATH,ETF
+CATLU,unit
 CCAQU,unit
 CCAQW,warrant
 CCCTU,unit
@@ -436,8 +447,6 @@ CCFE,ETF
 CCGWW,warrant
 CCIIU,unit
 CCIIW,warrant
-CCIXU,unit
-CCIXW,warrant
 CCNR,ETF
 CCSB,ETF
 CCSO,ETF
@@ -453,7 +462,6 @@ CDROW,warrant
 CDTTW,warrant
 CEFA,ETF
 CELG.RT,right
-CELUW,warrant
 CEPI,ETF
 CFA,ETF
 CFG.PRE,preferred
@@ -492,7 +500,6 @@ CLOU,ETF
 CLSKW,warrant
 CLSM,ETF
 CMBO,ETF
-CMGG,ETF
 CMIIU,unit
 CMIIW,warrant
 CMRE.PRB,preferred
@@ -500,7 +507,6 @@ CMRE.PRC,preferred
 CMRE.PRD,preferred
 CMS.PRB,preferred
 CMS.PRC,preferred
-CNCG,ETF
 CNCKW,warrant
 CNO.PRA,preferred
 CNQQ,ETF
@@ -536,6 +542,7 @@ CPAG,ETF
 CPAI,ETF
 CPHY,ETF
 CPLS,ETF
+CPTL,ETF
 CRACR,right
 CRACU,unit
 CRACW,warrant
@@ -554,6 +561,7 @@ CRY,ETF
 CSB,ETF
 CSCL,ETF
 CSCS,ETF
+CSEN,ETF
 CSHRW,warrant
 CTA.PRA,preferred
 CTA.PRB,preferred
@@ -569,7 +577,6 @@ CXIIU,unit
 CXIIW,warrant
 CXSE,ETF
 CYCUW,warrant
-CZAR,ETF
 DAAQU,unit
 DAAQW,warrant
 DADS,ETF
@@ -619,7 +626,6 @@ DMIIU,unit
 DMXF,ETF
 DNMXU,unit
 DNMXW,warrant
-DNNG,ETF
 DRDBU,unit
 DRDBW,warrant
 DRIV,ETF
@@ -718,6 +724,7 @@ EPR.PRE,preferred
 EPR.PRG,preferred
 EQH.PRA,preferred
 EQH.PRC,preferred
+EQQQ,ETF
 EQRR,ETF
 ERET,ETF
 ERNAW,warrant
@@ -749,6 +756,7 @@ EVPF,ETF
 EVSD,ETF
 EVTR,ETF
 EVYM,ETF
+EWAVU,unit
 EWJV,ETF
 EWZS,ETF
 EXUS,ETF
@@ -877,6 +885,7 @@ FTHAW,warrant
 FTHI,ETF
 FTQI,ETF
 FTRA.U,unit
+FTRA.WS,warrant
 FTRI,ETF
 FTSL,ETF
 FTSM,ETF
@@ -921,6 +930,7 @@ GEME,ETF
 GEMG,ETF
 GENVR,right
 GENZ,ETF
+GEQ,ETF
 GEVG,ETF
 GEW,ETF
 GFAIW,warrant
@@ -955,7 +965,6 @@ GLOP.PRA,preferred
 GLOP.PRB,preferred
 GLOP.PRC,preferred
 GLOW,ETF
-GLP.PRB,preferred
 GLWG,ETF
 GME.WS,warrant
 GMMF,ETF
@@ -966,6 +975,7 @@ GNL.PRE,preferred
 GNMA,ETF
 GNOM,ETF
 GNT.PRA,preferred
+GOLI,ETF
 GOU,ETF
 GOVI,ETF
 GPACU,unit
@@ -979,8 +989,6 @@ GPRF,ETF
 GPT,ETF
 GQQQ,ETF
 GRABW,warrant
-GRAF.U,unit
-GRAF.WS,warrant
 GRAG,ETF
 GRBK.PRA,preferred
 GRID,ETF
@@ -1052,6 +1060,7 @@ HIS,ETF
 HISF,ETF
 HL.PRB,preferred
 HLAL,ETF
+HLTH,ETF
 HMYY,ETF
 HNDL,ETF
 HODU,ETF
@@ -1075,7 +1084,8 @@ HVIIR,right
 HVIIU,unit
 HVMCU,unit
 HVMCW,warrant
-HWAY,ETF
+HWIV,ETF
+HWO,ETF
 HWSM,ETF
 HYBI,ETF
 HYBX,ETF
@@ -1172,7 +1182,9 @@ IPFXU,unit
 IPFXW,warrant
 IPKW,ETF
 IPVVU,unit
+IPVVW,warrant
 IQMXW,warrant
+IQQ,ETF
 IQQQ,ETF
 IRAB.U,unit
 IRAB.WS,warrant
@@ -1182,6 +1194,7 @@ IRHOU,unit
 ISHG,ETF
 ISHP,ETF
 ISNRU,unit
+ISNRW,warrant
 ISTB,ETF
 ISTM,ETF
 ISUL,ETF
@@ -1284,7 +1297,6 @@ KVACU,unit
 KVACW,warrant
 KWMWW,warrant
 KYIVW,warrant
-LACG,ETF
 LAFAR,right
 LAFAU,unit
 LATAU,unit
@@ -1334,6 +1346,7 @@ LRGE,ETF
 LRND,ETF
 LTCC,ETF
 LTGRU,unit
+LTGRW,warrant
 LTRYW,warrant
 LUCYW,warrant
 LULG,ETF
@@ -1351,8 +1364,6 @@ MACIU,unit
 MACIW,warrant
 MATE,ETF
 MAXI,ETF
-MBAVU,unit
-MBAVW,warrant
 MBB,ETF
 MBS,ETF
 MBVIU,unit
@@ -1443,11 +1454,13 @@ MSR,ETF
 MST,ETF
 MSTP,ETF
 MSTX,ETF
+MTAKU,unit
 MTAL.U,unit
 MTAL.WS,warrant
 MTB.PRH,preferred
 MTB.PRJ,preferred
 MTB.PRK,preferred
+MTB.PRL,preferred
 MTEKW,warrant
 MTNE.U,unit
 MTNE.WS,warrant
@@ -1461,7 +1474,6 @@ MUYY,ETF
 MUZEU,unit
 MUZEW,warrant
 MVLL,ETF
-MVSTW,warrant
 MYCF,ETF
 MYCG,ETF
 MYCH,ETF
@@ -1617,9 +1629,7 @@ ORCU,ETF
 ORCX,ETF
 ORIQU,unit
 ORIQW,warrant
-ORLG,ETF
 ORR,ETF
-OSCG,ETF
 OSCX,ETF
 OSPRU,unit
 OSRHW,warrant
@@ -1654,6 +1664,7 @@ PBOG,ETF
 PBPH,ETF
 PBQQ,ETF
 PBRG,ETF
+PBSC,ETF
 PCAPU,unit
 PCAPW,warrant
 PCMM,ETF
@@ -1694,6 +1705,7 @@ PIO,ETF
 PIZ,ETF
 PKW,ETF
 PLA,ETF
+PLCIU,unit
 PLMKU,unit
 PLMKW,warrant
 PLTD,ETF
@@ -1776,6 +1788,8 @@ PTNQ,ETF
 PTORU,unit
 PTORW,warrant
 PUI,ETF
+PUL,ETF
+PUR,ETF
 PWRD,ETF
 PXI,ETF
 PY,ETF
@@ -1800,11 +1814,13 @@ QDTY,ETF
 QETAR,right
 QETAU,unit
 QEW,ETF
+QFF,ETF
 QGRD,ETF
 QLDY,ETF
 QLEP.WS,warrant
 QMID,ETF
 QMOM,ETF
+QNDX,ETF
 QNXT,ETF
 QOWZ,ETF
 QPUX,ETF
@@ -1876,6 +1892,7 @@ REMG,ETF
 REXC,ETF
 REXR.PRB,preferred
 REXR.PRC,preferred
+REZI.WI,when-issued
 RF.PRC,preferred
 RF.PRE,preferred
 RF.PRF,preferred
@@ -1924,7 +1941,6 @@ RONB,ETF
 RPT.PRC,preferred
 RREVU,unit
 RREVW,warrant
-RSVRW,warrant
 RTACU,unit
 RTACW,warrant
 RTH,ETF
@@ -1955,11 +1971,11 @@ SB.PRC,preferred
 SB.PRD,preferred
 SBCWW,warrant
 SBFMW,warrant
-SBU,ETF
 SBXD.U,unit
 SBXD.WS,warrant
 SBXE.U,unit
 SBXE.WS,warrant
+SCA,ETF
 SCAGW,warrant
 SCCD,ETF
 SCCE,ETF
@@ -2034,6 +2050,7 @@ SMCO,ETF
 SMCX,ETF
 SMCZ,ETF
 SMH,ETF
+SMHC,ETF
 SMHX,ETF
 SMOM,ETF
 SMRI,ETF
@@ -2061,6 +2078,7 @@ SOXX,ETF
 SPAM,ETF
 SPAQ,ETF
 SPBC,ETF
+SPCK,ETF
 SPCT,ETF
 SPE.PRC,preferred
 SPEGR,right
@@ -2077,6 +2095,7 @@ SPYQ,ETF
 SQFTW,warrant
 SQLV,ETF
 SQQQ,ETF
+SQS,ETF
 SRET,ETF
 SRG.PRA,preferred
 SRZNW,warrant
@@ -2124,6 +2143,7 @@ TACHU,unit
 TACHW,warrant
 TACOU,unit
 TACOW,warrant
+TAOZ,ETF
 TARK,ETF
 TAVIR,right
 TAVIU,unit
@@ -2139,6 +2159,7 @@ TCAN,ETF
 TCHI,ETF
 TDACU,unit
 TDACW,warrant
+TDCL,ETF
 TDI,ETF
 TDIV,ETF
 TDOG,ETF
@@ -2149,6 +2170,7 @@ TDSB,ETF
 TDSC,ETF
 TDWDR,right
 TDWDU,unit
+TECY,ETF
 TEKX,ETF
 TEKY,ETF
 TEN.PRE,preferred
@@ -2159,6 +2181,7 @@ TEXX,ETF
 TFC.PRI,preferred
 TFC.PRO,preferred
 TFC.PRR,preferred
+TFGZ,ETF
 TFIN.PR,preferred
 TFNS,ETF
 TGE.WS,warrant
@@ -2169,7 +2192,10 @@ THMZ,ETF
 THRV,ETF
 THYM,ETF
 TILC,ETF
+TISC,ETF
+TKNS,ETF
 TLA,ETF
+TLG,ETF
 TLNCU,unit
 TLNCW,warrant
 TLSIW,warrant
@@ -2183,10 +2209,13 @@ TMSF,ETF
 TMSWW,warrant
 TMTSU,unit
 TMTSW,warrant
+TMYY,ETF
 TNGY,ETF
 TNONW,warrant
 TNXT,ETF
 TOIIW,warrant
+TONT.U,unit
+TONT.WS,warrant
 TPLS,ETF
 TPYP,ETF
 TPZ,ETF
@@ -2207,7 +2236,13 @@ TRTN.PRG,preferred
 TRTX.PRC,preferred
 TRUC,ETF
 TRUD,ETF
+TRUF,ETF
+TRUH,ETF
 TRUI,ETF
+TRUM,ETF
+TRUN,ETF
+TRUO,ETF
+TRUR,ETF
 TRUT,ETF
 TRUU,ETF
 TSCM,ETF
@@ -2271,7 +2306,6 @@ UMMA,ETF
 UNHG,ETF
 UNIY,ETF
 UPGR,ETF
-UPSG,ETF
 URNJ,ETF
 USAF,ETF
 USB.PRA,preferred
@@ -2290,7 +2324,6 @@ USIN,ETF
 USMC,ETF
 USOI,ETF
 USOY,ETF
-USRD,ETF
 USSH,ETF
 USTB,ETF
 USVM,ETF
@@ -2314,9 +2347,14 @@ VBCA,ETF
 VBCB,ETF
 VBCC,ETF
 VBCD,ETF
+VBCE,ETF
+VBCF,ETF
+VBCG,ETF
 VBCH,ETF
 VBCI,ETF
+VBCJ,ETF
 VBIL,ETF
+VBNB,ETF
 VCIT,ETF
 VCLT,ETF
 VCRB,ETF
@@ -2338,7 +2376,8 @@ VHCPW,warrant
 VIGI,ETF
 VII.U,unit
 VII.WS,warrant
-VLN.WS,warrant
+VLOSU,unit
+VLOSW,warrant
 VMBS,ETF
 VNMEU,unit
 VNMEW,warrant
@@ -2376,6 +2415,7 @@ VYMI,ETF
 WABF,ETF
 WAL.PRA,preferred
 WALDW,warrant
+WAMA,ETF
 WARP,ETF
 WBIY,ETF
 WBS.PRF,preferred
@@ -2397,6 +2437,7 @@ WFC.PRY,preferred
 WFC.PRZ,preferred
 WGMI,ETF
 WHR.PRA,preferred
+WIMA,ETF
 WINN,ETF
 WISE,ETF
 WLCOU,unit
@@ -2472,6 +2513,7 @@ YNOT,ETF
 YOKE,ETF
 YQQQ,ETF
 YSAG,ETF
+YSAU,ETF
 YSPY,ETF
 ZAP,ETF
 ZEOWW,warrant

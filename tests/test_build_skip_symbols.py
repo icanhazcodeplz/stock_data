@@ -35,6 +35,12 @@ class TestStructuralReason:
     def test_preferred_series(self, symbol):
         assert structural_reason(symbol) == "preferred"
 
+    @pytest.mark.parametrize("symbol", ["ADIG.WI", "REZI.WI"])
+    def test_when_issued(self, symbol):
+        # ".WI" is a conditional pre-issuance listing; Yahoo either doesn't
+        # know it or returns a near-empty record, so it must be skipped.
+        assert structural_reason(symbol) == "when-issued"
+
     @pytest.mark.parametrize(
         ("symbol", "reason"),
         [("ABCDU", "unit"), ("ABCDW", "warrant"), ("ABCDR", "right")],
