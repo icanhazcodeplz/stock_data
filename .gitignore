@@ -223,6 +223,9 @@ __marimo__/
 
 # Project specific
 data/all_symbols.txt
+# Rebuilt automatically by the daily run when missing or stale, and appended
+# to at runtime with yahoo_unknown verdicts — so it is generated, not source.
+data/skip_symbols.csv
 data/fundamentals.db
 data/fundamentals.db-shm
 data/fundamentals.db-wal

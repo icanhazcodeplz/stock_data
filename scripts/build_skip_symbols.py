@@ -26,10 +26,17 @@ Two kinds of symbols never carry the equity fundamentals we collect
   belong to the underlying company, not the when-issued line, so Yahoo
   either doesn't know the ticker or returns a near-empty record.
 
-The output CSV has two columns, ``symbol`` and ``reason``, where
+The output CSV has three columns — ``symbol``, ``reason``, ``date`` — where
 ``reason`` is one of ``ETF``, ``warrant``, ``right``, ``unit``,
-``preferred``, ``when-issued``. It is committed so downstream jobs can
-skip these symbols without re-querying Yahoo.
+``preferred``, ``when-issued``. These are derived from the ticker or from
+Yahoo's ``quoteType``, are permanent, and leave ``date`` empty.
+
+``yahoo_unknown`` rows are the exception: they are written by the daily
+run, not by this script, carry the date they were recorded, and are carried
+across rebuilds because no amount of reclassification can rediscover them
+(see ``carried_yahoo_unknown``).
+
+The file is generated, not source — it is gitignored and rebuilt on demand.
 
 The daily run calls ``rebuild_skip_symbols_if_stale()`` itself, so this
 script only needs to be run by hand to force an immediate rebuild.
@@ -40,7 +47,6 @@ Usage:
 Run from the repo root so ``settings`` and ``stock_data`` are importable.
 """
 
-import csv
 import sys
 from collections import Counter
 from datetime import datetime, timedelta
@@ -55,6 +61,12 @@ from yfinance.data import YfData  # noqa: E402
 from stock_data.get_all_stock_names import DEFAULT_SYMBOLS_FILE  # noqa: E402
 from stock_data.io_utils import (  # noqa: E402
     DEFAULT_SKIP_SYMBOLS_FILE as SKIP_SYMBOLS_FILE,
+)
+from stock_data.io_utils import (  # noqa: E402
+    YAHOO_UNKNOWN_REASON,
+    SkipRow,
+    read_skip_rows,
+    write_skip_rows,
 )
 
 QUOTE_URL = "https://query2.finance.yahoo.com/v7/finance/quote"
@@ -143,13 +155,35 @@ def classify(symbols: list[str], quote_types: dict[str, str]) -> list[tuple[str,
     return rows
 
 
-def write_skip_file(rows: list[tuple[str, str]], path: Path = SKIP_SYMBOLS_FILE) -> None:
-    """Write ``rows`` to ``path`` as a two-column CSV, sorted by symbol."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["symbol", "reason"])
-        writer.writerows(sorted(rows))
+def carried_yahoo_unknown(
+    symbols: list[str],
+    rows: list[tuple[str, str]],
+    path: Path = SKIP_SYMBOLS_FILE,
+) -> list[SkipRow]:
+    """Return the ``yahoo_unknown`` rows a rebuild should carry forward.
+
+    A rebuild recomputes its rows from the ticker and Yahoo's ``quoteType``,
+    neither of which can rediscover that Yahoo has no fundamentals for a
+    symbol — that is only learned by fetching it. Without carrying them the
+    wholesale rewrite would drop those rows and the daily run would spend its
+    budget rediscovering them.
+
+    Dropped on the way through: symbols that have left the universe
+    (delisted), so the file doesn't accumulate forever, and symbols this
+    rebuild already classified some other way, so no symbol appears twice —
+    that is how a newly listed ETF, unknown to Yahoo when it was first
+    fetched, gets relabelled once Yahoo indexes it.
+
+    Rows keep their recorded date, so a rebuild never restarts the retry
+    clock.
+    """
+    universe = set(symbols)
+    classified = {symbol for symbol, *_ in rows}
+    return [
+        row
+        for row in read_skip_rows(path)
+        if row.reason == YAHOO_UNKNOWN_REASON and row.symbol in universe and row.symbol not in classified
+    ]
 
 
 def build_skip_symbols(limit: int | None = None, path: Path = SKIP_SYMBOLS_FILE) -> None:
@@ -161,7 +195,8 @@ def build_skip_symbols(limit: int | None = None, path: Path = SKIP_SYMBOLS_FILE)
     print(f"Classifying {len(symbols)} symbols...")
     quote_types = fetch_quote_types(symbols)
     rows = classify(symbols, quote_types)
-    write_skip_file(rows, path)
+    rows += carried_yahoo_unknown(symbols, rows, path)
+    write_skip_rows(rows, path)
 
     counts = Counter(reason for _, reason in rows)
     print(f"\nWrote {len(rows)} skip symbol(s) to {path}")

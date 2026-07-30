@@ -9,11 +9,13 @@ import pytest
 from scripts import build_skip_symbols as bss
 from scripts.build_skip_symbols import (
     MAX_SKIP_SYMBOLS_AGE_DAYS,
+    carried_yahoo_unknown,
     classify,
     rebuild_skip_symbols_if_stale,
     skip_file_is_stale,
     structural_reason,
 )
+from stock_data.io_utils import YAHOO_UNKNOWN_REASON, SkipRow
 
 
 class TestStructuralReason:
@@ -81,6 +83,47 @@ class TestClassify:
             {"AAPL": "EQUITY", "SPY": "ETF", "BRK.B": "EQUITY"},
         )
         assert rows == [("SPY", "ETF"), ("FOO.PRA", "preferred"), ("ABCDW", "warrant")]
+
+
+class TestCarriedYahooUnknown:
+    """A rebuild rewrites the CSV wholesale, so yahoo_unknown rows — which it
+    cannot recompute from the ticker or quoteType — have to be carried."""
+
+    def _skip_file(self, tmp_path, csv_text: str):
+        path = tmp_path / "skip_symbols.csv"
+        path.write_text(csv_text)
+        return path
+
+    def test_carries_unknown_symbol_still_in_universe(self, tmp_path):
+        path = self._skip_file(tmp_path, f"symbol,reason,date\nZZZQ,{YAHOO_UNKNOWN_REASON},2026-07-01\n")
+
+        carried = carried_yahoo_unknown(["AAA", "ZZZQ"], [], path)
+
+        # The recorded date rides along, so a rebuild never resets the clock.
+        assert carried == [SkipRow("ZZZQ", YAHOO_UNKNOWN_REASON, "2026-07-01")]
+
+    def test_drops_symbol_that_left_the_universe(self, tmp_path):
+        # Delisted since it was skip-listed; carrying it forever would let the
+        # file grow without bound.
+        path = self._skip_file(tmp_path, f"symbol,reason\nGONE,{YAHOO_UNKNOWN_REASON}\n")
+
+        assert carried_yahoo_unknown(["AAA"], [], path) == []
+
+    def test_does_not_carry_other_reasons(self, tmp_path):
+        # The rebuild recomputes these itself; carrying them would duplicate.
+        path = self._skip_file(tmp_path, "symbol,reason\nSPY,ETF\n")
+
+        assert carried_yahoo_unknown(["SPY"], [], path) == []
+
+    def test_does_not_duplicate_a_symbol_this_rebuild_classified(self, tmp_path):
+        path = self._skip_file(tmp_path, f"symbol,reason\nABCDW,{YAHOO_UNKNOWN_REASON}\n")
+
+        carried = carried_yahoo_unknown(["ABCDW"], [("ABCDW", "warrant")], path)
+
+        assert carried == []
+
+    def test_missing_skip_file_carries_nothing(self, tmp_path):
+        assert carried_yahoo_unknown(["AAA"], [], tmp_path / "skip_symbols.csv") == []
 
 
 def _write_aged(path, age_days: float):
