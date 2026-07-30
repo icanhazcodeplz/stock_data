@@ -41,15 +41,19 @@ run stopped instead of repeating it, so the job is safe to cron:
 30 6 * * 1-5 cd /path/to/stock_data && uv run python scripts/get_stock_data.py >> logs/daily.log 2>&1
 ```
 
-## Weekly skip-list rebuild
+## Skip-list rebuild
+
+`data/skip_symbols.csv` lists ETFs, warrants, rights, units, preferred
+shares, and when-issued lines — none of which carry the equity fundamentals
+we collect. The daily run rebuilds it automatically whenever it is missing
+or more than `MAX_SKIP_SYMBOLS_AGE_DAYS` (3) old, so no separate schedule is
+needed. To force a rebuild now:
 
 ```sh
 uv run python scripts/build_skip_symbols.py
 ```
 
-Rebuilds `data/skip_symbols.csv` — ETFs, warrants, rights, units, and
-preferred shares, none of which carry the equity fundamentals we collect.
-The CSV is committed; intended cadence is weekly.
+The CSV is committed, so a rebuild shows up as a working-tree change.
 
 ## Reading the data
 
