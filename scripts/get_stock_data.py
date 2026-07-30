@@ -20,10 +20,13 @@ remain are share classes (e.g. "BRK.B"), which Yahoo writes with a dash
 stored under the original Alpaca symbol so the database stays keyed
 consistently with ``all_symbols.txt``.
 
-Yahoo does not raise on an unknown ticker — it returns a record with every
-field ``None`` — so all-null records are counted as failures and never
-inserted, otherwise their fresh ``retrieval_datetime`` would permanently
-hide the symbol from future runs.
+Yahoo does not raise on a ticker it has no fundamentals for — it returns a
+record with every company field ``None`` — so those records are counted as
+failures and never inserted, otherwise their fresh ``retrieval_datetime``
+would permanently hide the symbol from future runs. ``exchange`` does not
+count as data here: Yahoo fills it in from the quote header even for
+exchange-traded debt (baby bonds, senior notes) and for ETFs it reports as
+``EQUITY``, none of which carry the company fields we collect.
 
 Usage:
     uv run python scripts/get_stock_data.py
@@ -73,11 +76,24 @@ def alpaca_to_yahoo_symbol(symbol: str) -> str:
     return symbol.replace(".", "-")
 
 
+# Fields that carry no information about whether Yahoo actually knows the
+# ticker: ``symbol`` is ours, and ``exchange`` comes off the quote header,
+# which Yahoo fills in even for listings it has no fundamentals for.
+_UNINFORMATIVE_FIELDS = frozenset({"symbol", "exchange"})
+
+
 def _is_all_null(financials: Financials) -> bool:
-    """True if every field except ``symbol`` is ``None`` — Yahoo's way of
-    saying it doesn't know the ticker."""
+    """True if Yahoo returned no fundamentals at all for this ticker.
+
+    Exchange-traded debt (baby bonds, senior/subordinated notes) and some
+    ETFs come back with every company field ``None`` but a populated
+    ``exchange``, so ``exchange`` is excluded from the test — otherwise
+    those records look "partial" and get stored.
+    """
     return all(
-        getattr(financials, field.name) is None for field in dataclass_fields(financials) if field.name != "symbol"
+        getattr(financials, field.name) is None
+        for field in dataclass_fields(financials)
+        if field.name not in _UNINFORMATIVE_FIELDS
     )
 
 

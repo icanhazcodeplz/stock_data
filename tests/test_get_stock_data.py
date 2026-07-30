@@ -45,6 +45,14 @@ def _all_null_financials(symbol: str) -> Financials:
     )
 
 
+def _exchange_only_financials(symbol: str) -> Financials:
+    """What Yahoo returns for a baby bond or a fund: a quote-header exchange
+    and nothing else."""
+    financials = _all_null_financials(symbol)
+    financials.exchange = "NYQ"
+    return financials
+
+
 class FakeEnvironment:
     """Patched-out world for one test: tmp DB, canned universe, recorded calls."""
 
@@ -157,6 +165,34 @@ class TestRecordHandling:
         out = capsys.readouterr().out
         assert "not stored" in out
         assert "Failed (1): ZZZQ" in out
+
+    def test_exchange_only_record_not_inserted(self, env, capsys):
+        env.set_universe(["AFGB"])
+        env.monkeypatch.setattr(gsd, "get_financials", _exchange_only_financials)
+
+        gsd.get_stock_data()
+
+        assert env.db_rows() == []
+        out = capsys.readouterr().out
+        assert "not stored" in out
+        assert "Failed (1): AFGB" in out
+
+    def test_partial_record_is_inserted(self, env):
+        """A record with any company field populated is real data, even if
+        most fields are null."""
+
+        def _float_only(symbol: str) -> Financials:
+            financials = _all_null_financials(symbol)
+            financials.exchange = "NMS"
+            financials.float_shares = 83_824_239
+            return financials
+
+        env.set_universe(["ADAMG"])
+        env.monkeypatch.setattr(gsd, "get_financials", _float_only)
+
+        gsd.get_stock_data()
+
+        assert [row[0] for row in env.db_rows()] == ["ADAMG"]
 
     def test_dotted_symbol_translated(self, env):
         env.set_universe(["BRK.B"])
