@@ -198,7 +198,7 @@ def build_skip_symbols(limit: int | None = None, path: Path = SKIP_SYMBOLS_FILE)
     rows += carried_yahoo_unknown(symbols, rows, path)
     write_skip_rows(rows, path)
 
-    counts = Counter(reason for _, reason in rows)
+    counts = Counter(row[1] for row in rows)  # rows mix 2-tuples and 3-field SkipRows
     print(f"\nWrote {len(rows)} skip symbol(s) to {path}")
     for reason, count in sorted(counts.items()):
         print(f"  {reason}: {count}")
